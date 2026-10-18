@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ear Trainer — Voice & Listening</title>
+<style>
+:root{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color-scheme:light;--ink:#18212a;--muted:#52606e;--line:#d7dfe7;--blue:#254e80;--bg:#f4f6f9;--good:#176b49}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);line-height:1.48}main{max-width:730px;margin:auto;padding:22px 16px 55px}
+h1{font-size:clamp(1.65rem,3vw,2.15rem);margin:0 0 5px;line-height:1.2}p{margin:7px 0}.lead{color:var(--muted);margin:0 0 20px}
+.panel{background:white;border:1px solid var(--line);border-radius:16px;padding:18px;margin:13px 0}.panel h2{font-size:1.12rem;margin:0 0 12px}
+.settings{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}
+.field{display:flex;flex-direction:column;gap:5px}.field label{font-size:.91rem;font-weight:650}select{width:100%;font:inherit;border:1px solid #bfcbd6;background:white;color:var(--ink);border-radius:9px;padding:11px 9px;min-height:46px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:14px}button{font:inherit;font-weight:650;padding:12px 18px;min-height:50px;border-radius:10px;border:1px solid #abbaca;background:white;color:var(--ink);cursor:pointer}
+button.primary{background:var(--blue);border-color:var(--blue);color:#fff}button:disabled{opacity:.45;cursor:default}
+.status{background:#ebf1f8;border-radius:12px;padding:19px;margin:12px 0 0;min-height:110px}.status .phase{font-size:.83rem;letter-spacing:.08em;text-transform:uppercase;color:#425770;font-weight:750}
+.status .message{font-size:clamp(1.15rem,2.6vw,1.5rem);font-weight:700;margin-top:7px;overflow-wrap:anywhere}
+.meta{font-size:.9rem;color:var(--muted);margin-top:9px}.numbers{display:flex;gap:25px;flex-wrap:wrap;margin-top:10px}.numbers span{font-size:.93rem;color:var(--muted)}.numbers strong{font-size:1.3rem;color:var(--ink)}
+.note{color:#52606e;font-size:.92rem}.warning{background:#fff8e9;border:1px solid #ead9b6;padding:12px 15px;border-radius:10px;font-size:.91rem}#heard{font-weight:650}.muted{color:var(--muted)}
+@media(max-width:470px){.settings{grid-template-columns:1fr}main{padding:18px 12px 40px}.panel{padding:15px}button{flex:1}}
+@media(prefers-color-scheme:dark){:root{color-scheme:dark;--ink:#eef2f6;--muted:#bac6d1;--line:#445365;--blue:#416b9c;--bg:#141b24}body{color:var(--ink)}.panel{background:#202b37}.status{background:#283c52}.status .phase{color:#bbccdf}select,button{background:#2b3847;color:var(--ink);border-color:#586778}button.primary{background:#416b9c}.numbers strong{color:var(--ink)}.warning{background:#42391f;border-color:#7b6837}.note{color:var(--muted)}}
+</style>
+</head>
+<body>
+<main>
+<header><h1>Ear Trainer <span style="font-weight:450">— Voice Edition</span></h1><p class="lead">Hands-free interval and chord recognition, with spoken answers or automatic reveals.</p></header>
+<div class="warning"><strong>Before driving:</strong> Choose your settings and start the session while parked. Do not look at or operate the touchscreen while driving. Stop the exercise if it distracts you. This browser experiment may work differently across Tesla software versions.</div>
+<section class="panel" aria-label="Session settings"><h2>Session setup</h2>
+<div class="settings">
+ <div class="field"><label for="exercise">Exercise</label><select id="exercise"><option value="interval">Intervals</option><option value="chord">Chords</option></select></div>
+ <div class="field"><label for="interaction">Response method</label><select id="interaction"><option value="voice">Voice: say the answer</option><option value="reveal">Listening only: answer revealed</option></select></div>
+ <div class="field"><label for="difficulty">Difficulty</label><select id="difficulty"><option value="starter">Starter (a few choices)</option><option value="medium">Intermediate</option><option value="full">Full selection</option></select></div>
+ <div class="field"><label for="presentation">Interval presentation</label><select id="presentation"><option value="ascending">Ascending</option><option value="descending">Descending</option><option value="harmonic">Simultaneous</option><option value="random">Random</option></select></div>
+ <div class="field"><label for="rootMode">Starting note</label><select id="rootMode"><option value="fixed">Fixed C</option><option value="varied" selected>Various starting notes</option></select></div>
+ <div class="field"><label for="duration">Questions per session</label><select id="duration"><option value="5">5</option><option value="10" selected>10</option><option value="20">20</option></select></div>
+ <div class="field"><label for="guessTime">Listening-only thinking time</label><select id="guessTime"><option value="3">3 seconds</option><option value="5" selected>5 seconds</option><option value="8">8 seconds</option></select></div>
+</div>
+<div class="row"><button type="button" class="primary" id="start">▶ Start session</button><button type="button" id="stop" disabled>■ Stop</button><button type="button" id="test">Test microphone</button></div>
+<p id="support" class="note" aria-live="polite">Checking browser features…</p>
+</section>
+<section class="panel" aria-label="Session activity"><h2>Listening exercise</h2><div class="status" role="status" aria-live="polite" aria-atomic="true"><div class="phase" id="phase">Ready</div><div class="message" id="message">Choose settings, then press Start.</div><div class="meta" id="detail">Say “major third”, “minor seventh”, “repeat”, “skip”, or “stop” when listening is active.</div></div>
+<div class="numbers"><span>Question <strong id="count">0 / 10</strong></span><span>Correct <strong id="score">0</strong></span><span>Voice recognised <strong id="heardCount">0</strong></span></div>
+<p class="note">Last heard: <span id="heard">—</span></p></section>
+<section class="panel"><h2>How it works</h2><p>After the notes finish, the app listens for your spoken answer and announces the result. It automatically advances. “Repeat” plays the notes again; “skip” reveals the answer; “stop” ends the session.</p><p>If the browser cannot recognise speech, the app switches to listening-only mode. You then answer mentally or aloud and, if the browser supports speech output, hear the correct answer after a short pause. This mode does not grade you.</p><p class="note">Piano recordings: Salamander Grand Piano by Alexander Holm (CC BY 3.0), using the same source as the original Ear Trainer. If recordings cannot load, the app uses a built-in synthesiser. Voice recognition may require internet access and permission to use the microphone. No voice recordings are saved by this app; browser speech services may process audio online.</p></section>
+</main>
+<script>
+(()=>{'use strict';
+const $=id=>document.getElementById(id);
+const INTERVALS=[
+{name:'Unison',semi:0,tier:3}, {name:'Minor second',semi:1,tier:2}, {name:'Major second',semi:2,tier:2},
+{name:'Minor third',semi:3,tier:2}, {name:'Major third',semi:4,tier:1}, {name:'Perfect fourth',semi:5,tier:1},
+{name:'Tritone',semi:6,tier:3}, {name:'Perfect fifth',semi:7,tier:1}, {name:'Minor sixth',semi:8,tier:3},
+{name:'Major sixth',semi:9,tier:2},{name:'Minor seventh',semi:10,tier:3},{name:'Major seventh',semi:11,tier:3},{name:'Octave',semi:12,tier:2}
+];
+const CHORDS=[
+{name:'Major',semis:[0,4,7],tier:1},{name:'Minor',semis:[0,3,7],tier:1},
+{name:'Diminished',semis:[0,3,6],tier:2},{name:'Augmented',semis:[0,4,8],tier:2},
+{name:'Dominant seventh',semis:[0,4,7,10],tier:3},{name:'Major seventh',semis:[0,4,7,11],tier:3},
+{name:'Minor seventh',semis:[0,3,7,10],tier:3},{name:'Half diminished seventh',semis:[0,3,6,10],tier:3}
+];
+const Recognizer=window.SpeechRecognition||window.webkitSpeechRecognition;
+const hasSpeech=typeof window.speechSynthesis!=='undefined'&&typeof window.SpeechSynthesisUtterance==='function';
+let ctx=null, samples=new Map(),sampleStatus='not loaded';
+let running=false, runId=0,activeRecognizer=null,activeTimeouts=new Set(),activeSources=[];
+let answers=0,scored=0,number=0,lastAnswer='',voiceCount=0,voiceMode=false,question=null,starting=false;
+const sleep=(ms,token)=>new Promise(resolve=>{const t=setTimeout(()=>{activeTimeouts.delete(t);resolve(token===runId&&running)},ms);activeTimeouts.add(t);});
+function cancelTimers(){for(const t of activeTimeouts)clearTimeout(t);activeTimeouts.clear();}
+function stopRecognizer(){if(activeRecognizer){try{activeRecognizer.abort();}catch(e){}activeRecognizer=null;}}
+function stopSources(){for(const source of activeSources){try{source.stop();}catch(e){}}activeSources=[];}
+function status(phase,message,detail){$('phase').textContent=phase;$('message').textContent=message;if(detail!==undefined)$('detail').textContent=detail;}
+function updateScores(){ $('count').textContent=number+' / '+$('duration').value; $('score').textContent=scored+' / '+answers; $('heardCount').textContent=voiceCount; $('heard').textContent=lastAnswer||'—'; }
+function changeControls(on){for (const sel of document.querySelectorAll('select'))sel.disabled=on;$('start').disabled=on||starting;$('test').disabled=on||starting;$('stop').disabled=!on;}
+function ensureAudio(){if(!ctx){const Audio=window.AudioContext||window.webkitAudioContext;if(!Audio)throw Error('Audio is not supported in this browser.');ctx=new Audio();}return ctx.resume();}
+const SAMPLE_BASE='https://tonejs.github.io/audio/salamander/';
+const SAMPLE_LIST=[[48,'C3.mp3'],[51,'Ds3.mp3'],[54,'Fs3.mp3'],[57,'A3.mp3'],[60,'C4.mp3'],[63,'Ds4.mp3'],[66,'Fs4.mp3'],[69,'A4.mp3'],[72,'C5.mp3'],[75,'Ds5.mp3'],[78,'Fs5.mp3'],[81,'A5.mp3'],[84,'C6.mp3']];
+async function loadSamples(){if(sampleStatus!=='not loaded')return;sampleStatus='loading';const outcomes=await Promise.allSettled(SAMPLE_LIST.map(async ([m,file])=>{const res=await fetch(SAMPLE_BASE+file);if(!res.ok)throw Error('HTTP '+res.status);const buf=await ctx.decodeAudioData(await res.arrayBuffer());samples.set(m,buf);}));sampleStatus=samples.size?'ready':'failed';$('support').textContent=makeSupportText();}
+function makeSupportText(){const rec=Recognizer?'Speech-recognition interface detected':'No speech-recognition interface detected';const tts=hasSpeech?'speech output available':'speech output unavailable (no spoken feedback)';return rec+'; '+tts+'. Piano sounds: '+(sampleStatus==='ready'?'recorded samples':sampleStatus==='loading'?'loading recordings':sampleStatus==='failed'?'synthesiser fallback':'recordings load after starting')+'.';}
+function track(source){activeSources.push(source);source.onended=()=>{const i=activeSources.indexOf(source);if(i>=0)activeSources.splice(i,1);};}
+function note(midi,delay=0,length=.8,level=.47){if(!ctx)return;const when=ctx.currentTime+.04+delay;let nearest=null,best=10000;for(const [m,buffer] of samples){const dist=Math.abs(m-midi);if(dist<best){best=dist;nearest=[m,buffer];}}
+if(nearest){const src=ctx.createBufferSource();src.buffer=nearest[1];src.playbackRate.value=Math.pow(2,(midi-nearest[0])/12);const g=ctx.createGain();g.gain.setValueAtTime(0.0001,when);g.gain.linearRampToValueAtTime(level,when+.018);g.gain.setValueAtTime(level,when+Math.min(.20,length*.4));g.gain.exponentialRampToValueAtTime(.0001,when+length+.23);src.connect(g);g.connect(ctx.destination);src.start(when);src.stop(when+length+.3);track(src);return;}
+// Local synthesized fallback. Do not require external audio assets.
+[1,2].forEach((harmonic,i)=>{const src=ctx.createOscillator(),g=ctx.createGain(),filter=ctx.createBiquadFilter();src.type=i===0?'triangle':'sine';src.frequency.setValueAtTime(440*Math.pow(2,(midi-69)/12)*harmonic,when);filter.type='lowpass';filter.frequency.value=2900;g.gain.setValueAtTime(.0001,when);g.gain.exponentialRampToValueAtTime(level*(i===0?.22:.036),when+.011);g.gain.exponentialRampToValueAtTime(.0001,when+length+.18);src.connect(filter);filter.connect(g);g.connect(ctx.destination);src.start(when);src.stop(when+length+.2);track(src);});}
+function playQuestion(q){stopSources();if(q.mode==='chord'){q.item.semis.forEach(s=>note(q.root+s,0,1.15,.35));return 1540;}const a=q.root,b=q.root+q.item.semi;if(q.presentation==='harmonic'){note(a,0,1.10,.45);note(b,0,1.10,.45);return 1500;}const sequence=q.presentation==='descending'?[b,a]:[a,b];note(sequence[0],0,.78,.53);note(sequence[1],.74,.84,.53);return 1920;}
+function randomElement(arr){return arr[Math.floor(Math.random()*arr.length)];}
+function newQuestion(){const mode=$('exercise').value,limit=$('difficulty').value==='starter'?1:$('difficulty').value==='medium'?2:3;const list=(mode==='interval'?INTERVALS:CHORDS).filter(x=>x.tier<=limit);let item=randomElement(list);if(question&&item.name===question.item.name&&list.length>1)item=randomElement(list.filter(x=>x.name!==question.item.name));const pres=$('presentation').value;return {mode,item,presentation:pres==='random'?randomElement(['ascending','descending','harmonic']):pres,root:$('rootMode').value==='fixed'?60:randomElement([55,57,59,60,62,64,65,67])};}
+function normalise(s){return s.toLowerCase().replace(/\b(an?|the|interval|chord|i think|it is|it's|sounds like|please|number)\b/g,' ').replace(/[^a-z0-9\s]/g,' ').replace(/\s+/g,' ').trim();}
+const ORDINAL={one:'first',first:'first',two:'second',second:'second',third:'third',fourth:'fourth',fifth:'fifth',sixth:'sixth',seventh:'seventh',eighth:'octave',octave:'octave',seven:'seventh',three:'third',four:'fourth',five:'fifth',six:'sixth'};
+function classify(raw,mode){let s=normalise(raw);if(!s)return null;if(/\b(repeat|again|replay|one more time)\b/.test(s))return '_repeat';if(/\b(skip|pass|don't know|dont know)\b/.test(s))return '_skip';if(/\b(stop|finish|end session|quit)\b/.test(s))return '_stop';
+ s=s.replace(/\b1st\b/g,'first').replace(/\b2nd\b/g,'second').replace(/\b3rd\b/g,'third').replace(/\b4th\b/g,'fourth').replace(/\b5th\b/g,'fifth').replace(/\b6th\b/g,'sixth').replace(/\b7th\b/g,'seventh').replace(/\b8th\b/g,'octave');
+ s=s.replace(/\bmajor 7\b/g,'major seventh').replace(/\bminor 7\b/g,'minor seventh').replace(/\bdom 7\b/g,'dominant seventh').replace(/\bdominant 7\b/g,'dominant seventh');
+ if(mode==='chord'){
+  if(/half\s*dimini/.test(s))return 'Half diminished seventh';
+  if(/dominant/.test(s))return 'Dominant seventh';
+  if(/augmented/.test(s))return 'Augmented';
+  if(/diminished/.test(s))return 'Diminished';
+  if(/minor/.test(s))return /seventh|seven|\b7\b/.test(s)?'Minor seventh':'Minor';
+  if(/major/.test(s))return /seventh|seven|\b7\b/.test(s)?'Major seventh':'Major';
+  return null;
+ }
+ if(/tritone|tri tone|flat five|sharp four/.test(s))return 'Tritone';
+ if(/unison|same note|first/.test(s))return 'Unison';
+ if(/octave|eight|eighth/.test(s))return 'Octave';
+ let kind=/\bminor\b/.test(s)?'Minor':/\bmajor\b/.test(s)?'Major':/\bperfect\b/.test(s)?'Perfect':null;
+ let degree=null;for(const token of s.split(' ')){let t=ORDINAL[token]||token;if(['second','third','fourth','fifth','sixth','seventh'].includes(t))degree=t;}
+ if(!kind||!degree)return null;
+ return kind+' '+degree;
+}
+function clearSpeech(){if(hasSpeech){try{window.speechSynthesis.cancel();}catch(e){}}}
+function speak(text,token){return new Promise(resolve=>{if(token!==runId||!running||!hasSpeech){resolve();return;}let done=false,timer=null;const finish=()=>{if(done)return;done=true;if(timer){clearTimeout(timer);activeTimeouts.delete(timer);}resolve();};try{const u=new SpeechSynthesisUtterance(text);u.lang='en-AU';u.rate=.98;u.volume=1;u.onend=finish;u.onerror=finish;window.speechSynthesis.speak(u);timer=setTimeout(finish,Math.min(6000,1100+text.length*70));activeTimeouts.add(timer);}catch(e){finish();}});}
+// Each voice attempt is bounded. Error and end handlers settle the same promise only once.
+function listen(token){return new Promise(resolve=>{if(!Recognizer||token!==runId||!running){resolve({kind:'unsupported'});return;}let rec,settled=false,timer=null;const finish=(result)=>{if(settled)return;settled=true;if(timer){clearTimeout(timer);activeTimeouts.delete(timer);}if(activeRecognizer===rec)activeRecognizer=null;try{rec.abort();}catch(e){}resolve(result);};try{
+ rec=new Recognizer();rec.lang='en-AU';rec.interimResults=false;rec.maxAlternatives=3;rec.continuous=false;activeRecognizer=rec;
+ rec.onresult=e=>{const options=[];for(let i=0;i<e.results.length;i++){for(let j=0;j<e.results[i].length;j++){options.push(e.results[i][j].transcript);}}const value=options.map(t=>({raw:t,parsed:classify(t,question.mode)})).find(x=>x.parsed)||{raw:options[0]||'',parsed:null};finish({kind:'result',...value});};
+ rec.onerror=e=>finish({kind:'error',error:e.error||'speech-error'});
+ rec.onend=()=>finish({kind:'end'});
+ rec.start();timer=setTimeout(()=>finish({kind:'timeout'}),7400);activeTimeouts.add(timer);
+ }catch(e){finish({kind:'error',error:e.name||'speech-unavailable'});}});}
+async function answerFeedback(q,guess,token){if(token!==runId||!running)return;const right=guess===q.item.name;if(guess){answers++;if(right)scored++;}updateScores();if(guess){status(right?'Correct':'Not quite',right?q.item.name:'Answer: '+q.item.name,'You said: '+guess);await speak(right?'Correct. '+q.item.name:'Not quite. It was '+q.item.name+'.',token);}else{status('Answer',q.item.name,'Automatically revealed; no score recorded.');await speak('That was '+q.item.name+'.',token);}await sleep(1100,token);}
+async function askAndGrade(q,token){status('Listen','Identify the '+(q.mode==='interval'?'interval':'chord')+'.','The microphone will activate only after the piano finishes.');let ms=playQuestion(q);if(!(await sleep(ms+330,token)))return;
+ if(!voiceMode){status('Think of your answer','Answer mentally or aloud.', 'Revealing automatically in '+$('guessTime').value+' seconds.');if(!(await sleep(Number($('guessTime').value)*1000,token)))return;await answerFeedback(q,null,token);return;}
+ for(let attempt=0;attempt<3&&running&&token===runId;attempt++){
+  status('Listening…','Say the interval or chord name.','Or say “repeat”, “skip”, or “stop”.');const outcome=await listen(token);if(!running||token!==runId)return;
+  if(outcome.kind==='error'&&['not-allowed','service-not-allowed','audio-capture','network','speech-unavailable','NotAllowedError','SecurityError'].includes(outcome.error)){
+   voiceMode=false;status('Microphone unavailable','Switching to automatic answer reveal.','Browser error: '+outcome.error);await speak('Voice recognition unavailable. Switching to listening only.',token);await answerFeedback(q,null,token);return;}
+  if(outcome.kind==='unsupported'){voiceMode=false;await answerFeedback(q,null,token);return;}
+  const parsed=outcome.kind==='result'?outcome.parsed:null;
+  if(outcome.kind==='result'){lastAnswer=outcome.raw;voiceCount++;updateScores();}
+  if(parsed==='_stop'){stopSession('Stopped by voice command.');return;}
+  if(parsed==='_skip'){await answerFeedback(q,null,token);return;}
+  if(parsed==='_repeat'){status('Replaying','Listen again.');ms=playQuestion(q);if(!(await sleep(ms+300,token)))return;attempt--;continue;}
+  if(parsed){await answerFeedback(q,parsed,token);return;}
+  if(attempt<2){status('Try again','I did not catch a musical answer.','Please say, for example, “major third”.');await speak('Please say the answer again.',token);if(!(await sleep(350,token)))return;}
+ }
+ if(running&&token===runId)await answerFeedback(q,null,token);
+}
+async function session(token){while(running&&token===runId&&number<Number($('duration').value)){question=newQuestion();number++;updateScores();await askAndGrade(question,token);if(!running||token!==runId)return;}
+ if(running&&token===runId){status('Finished','Session complete. '+scored+' correct out of '+answers+' recognised answers.','Select Start session for another round.');await speak('Session complete.',token);stopSession(null,true);}}
+async function startSession(){if(running||starting)return;starting=true;changeControls(false);try{await ensureAudio();}catch(e){status('Audio error',e.message);starting=false;changeControls(false);return;}
+ runId++;const token=runId;cancelTimers();stopRecognizer();stopSources();clearSpeech();running=true;starting=false;number=0;scored=0;answers=0;voiceCount=0;lastAnswer='';question=null;voiceMode=$('interaction').value==='voice'&&!!Recognizer;changeControls(true);updateScores();if(sampleStatus==='not loaded')void loadSamples();if($('interaction').value==='voice'&&!Recognizer){status('No voice recognition','Using listening-only mode.','This browser does not expose Web Speech recognition.');await speak('Voice recognition is not available. Switching to listening only.',token);}
+ if(!running||token!==runId)return;void session(token);
+}
+function stopSession(message='Session stopped.',complete=false){running=false;starting=false;runId++;cancelTimers();stopRecognizer();stopSources();clearSpeech();changeControls(false);if(message)status(complete?'Finished':'Stopped',message,'Change settings or start another session.');}
+function testMic(){if(running)return;const supported=!!Recognizer;if(!supported){status('Microphone test','SpeechRecognition not exposed by this browser.','The listening-only mode can still play exercises.');return;}
+ $('test').disabled=true;status('Microphone test','Say “major third” now.','This tests the Web Speech recogniser; it is not a Tesla voice command.');let rec,done=false,timer=null;const finish=message=>{if(done)return;done=true;if(timer)clearTimeout(timer);try{rec.abort();}catch(e){}$('test').disabled=false;status('Microphone test result',message,'If this fails in the Tesla, use listening-only mode or a phone browser.');};
+ try{rec=new Recognizer();rec.lang='en-AU';rec.interimResults=false;rec.onresult=e=>finish('Heard: '+e.results[0][0].transcript);rec.onerror=e=>finish('Speech recognition error: '+e.error);rec.onend=()=>finish('No recognised speech.');rec.start();timer=setTimeout(()=>finish('No speech detected within 8 seconds.'),8000);}catch(e){finish('Speech recognition could not start: '+e.message);}}
+$('start').addEventListener('click',startSession);$('stop').addEventListener('click',()=>stopSession());$('test').addEventListener('click',testMic);$('duration').addEventListener('change',updateScores);$('exercise').addEventListener('change',()=>{$('presentation').disabled=$('exercise').value==='chord';});
+$('support').textContent=makeSupportText();updateScores();
+})();
+</script>
+</body>
+</html>
