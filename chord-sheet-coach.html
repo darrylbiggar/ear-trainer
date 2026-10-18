@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#163e43">
+  <title>Chord Sheet Coach — Functions & Transposition</title>
+  <style>
+    :root { color-scheme: light; --ink:#1c3033; --soft:#647678; --line:#d7e0df; --cream:#f7f8f5; --surface:#fff; --teal:#17646a; --pale:#e7f2f0; --green:#285d46; --red:#a54838; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; background:var(--cream); color:var(--ink); line-height:1.5; }
+    .wrap { width:min(1120px,100% - 28px); margin:0 auto; }
+    header { background:#163e43; color:#fff; padding:24px 0 22px; }
+    .eyebrow { text-transform:uppercase; font-size:.72rem; letter-spacing:.15em; color:#b6d2cf; font-weight:700; }
+    h1 { font-size:clamp(1.55rem,3.8vw,2.35rem); line-height:1.2; margin:5px 0 8px; letter-spacing:-.035em; }
+    header p { margin:0; color:#d6e5e2; max-width:740px; font-size:.95rem; }
+    main { padding:22px 0 55px; }
+    .panel { background:var(--surface); border:1px solid var(--line); border-radius:13px; overflow:hidden; }
+    .editor-grid { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.05fr); gap:18px; align-items:start; }
+    .panel-inner { padding:17px; }
+    .panel-heading { display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin-bottom:11px; }
+    h2 { font-size:1.07rem; margin:0; letter-spacing:-.015em; }
+    .muted { color:var(--soft); font-size:.84rem; }
+    textarea { font:14px/1.56 ui-monospace,SFMono-Regular,Consolas,monospace; width:100%; resize:vertical; min-height:325px; padding:13px; border:1px solid #b9c9c8; border-radius:8px; color:var(--ink); background:#fff; tab-size:4; white-space:pre; }
+    textarea:focus,select:focus-visible,button:focus-visible { outline:3px solid #84bcb8; outline-offset:2px; }
+    .helper { margin:9px 0 0; font-size:.84rem; color:var(--soft); }
+    .tools { display:flex; flex-wrap:wrap; gap:8px; margin-top:13px; }
+    button { min-height:39px; border:1px solid #b8cbc8; border-radius:8px; background:#fff; color:var(--ink); padding:7px 12px; font-size:.9rem; font-weight:620; cursor:pointer; }
+    button:hover { background:#eff6f3; }
+    button.primary { background:var(--teal); color:#fff; border-color:var(--teal); }
+    button.primary:hover { background:#0e5055; }
+    .control-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    label { display:block; font-size:.81rem; font-weight:700; color:#445f61; margin-bottom:5px; }
+    select { display:block; width:100%; min-height:40px; padding:8px; border:1px solid #b8cbc8; border-radius:8px; background:#fff; color:var(--ink); font-size:1rem; }
+    .format-label { margin:16px 0 7px; }
+    .segments { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); border:1px solid #bfd2cd; border-radius:8px; overflow:hidden; }
+    .segments button { border:0; border-radius:0; padding:10px 5px; min-height:41px; font-size:.83rem; font-weight:670; }
+    .segments button + button { border-left:1px solid #bfd2cd; }
+    .segments button[aria-pressed="true"] { background:#dceee9; color:#134e44; box-shadow:inset 0 -3px 0 #21756c; }
+    .practice { margin-top:17px; background:var(--pale); padding:13px; border-radius:9px; font-size:.87rem; }
+    .practice strong { display:block; margin-bottom:4px; }
+    .practice p { margin:0; }
+    .sheet-panel { margin-top:18px; }
+    .result-head { padding:15px 18px; display:flex; align-items:center; gap:10px; justify-content:space-between; flex-wrap:wrap; border-bottom:1px solid var(--line); }
+    .result-title { font-weight:700; font-size:1.04rem; }
+    .result-status { margin-top:3px; font-size:.81rem; color:var(--soft); }
+    .sheet-scroll { overflow-x:auto; padding:22px 24px 31px; min-height:145px; }
+    .sheet { width:max-content; min-width:100%; font:15px/1.5 ui-monospace,SFMono-Regular,Consolas,"Liberation Mono",monospace; }
+    .sheet-block { display:flex; white-space:pre; width:max-content; margin:0 0 6px; }
+    .sheet-piece { display:inline-flex; flex-direction:column; align-items:flex-start; flex:none; min-width:0; }
+    .sheet-chord { color:var(--teal); font-weight:750; min-height:1.5em; white-space:pre; }
+    .sheet-lyric { color:#263b3d; white-space:pre; }
+    .sheet-block.chords-only .sheet-lyric { display:none; }
+    .sheet-section { color:var(--green); font-weight:780; background:#ecf5ee; width:max-content; border-radius:4px; padding:1px 7px; margin:11px 0 8px; }
+    .sheet-plain { white-space:pre; line-height:1.5; min-height:1.5em; }
+    .sheet-spacer { height:13px; }
+    .message { border-left:3px solid #3b8a81; background:#f0f6f4; font-size:.85rem; color:#47605f; padding:10px 12px; margin:14px 0 0; }
+    .message.warn { border-color:#c58a48; background:#fff8ec; }
+    footer { font-size:.83rem; color:var(--soft); margin-top:15px; }
+    #toast { font-size:.85rem; color:var(--green); min-height:1.3em; margin-left:2px; }
+    @media (max-width:800px) { .editor-grid { grid-template-columns:1fr; } textarea { min-height:215px; } }
+    @media (max-width:410px) { .wrap { width:calc(100% - 20px); } .panel-inner { padding:13px; } .sheet-scroll { padding:15px 12px; } .sheet { font-size:13px; } }
+    @media print { body { background:#fff; } header,.editor-grid,.result-head button,footer,.message,#toast {display:none!important;} main {padding:0;} .wrap {width:100%;} .sheet-panel {margin:0;border:0;} .result-head {display:block; padding:0 0 12px; border:0;} .result-head .muted {display:none;} .sheet-scroll {overflow:visible; padding:0;} .sheet {font-size:11pt;} }
+  </style>
+</head>
+<body>
+  <header><div class="wrap">
+    <div class="eyebrow">Musicianship practice tools · Prototype 1</div>
+    <h1>Chord Sheet Coach</h1>
+    <p>Turn familiar chord sheets into harmonic functions, transpose them into a new key, and practise playing from numbers instead of chord names.</p>
+  </div></header>
+  <main class="wrap">
+    <div class="editor-grid">
+      <section class="panel panel-inner" aria-labelledby="input-title">
+        <div class="panel-heading"><h2 id="input-title">1. Paste a chord sheet</h2><span class="muted">No upload required</span></div>
+        <textarea id="sheetInput" spellcheck="false" aria-label="Pasted chord sheet"></textarea>
+        <p class="helper">Accepts chords above lyrics, or inline notation such as <code>[C]first [Am]line</code>. Section labels are retained. The sheet stays in your browser.</p>
+        <div class="tools"><button id="exampleBtn" type="button">Restore example</button><button id="clearBtn" type="button">Clear</button></div>
+      </section>
+      <section class="panel panel-inner" aria-labelledby="settings-title">
+        <div class="panel-heading"><h2 id="settings-title">2. Choose how to practise</h2></div>
+        <div class="control-row">
+          <div><label for="sourceKey">Original song key</label><select id="sourceKey"></select></div>
+          <div><label for="targetKey">Play in this key</label><select id="targetKey"></select></div>
+        </div>
+        <label class="format-label">Chord display</label>
+        <div class="segments" role="group" aria-label="Chord display format">
+          <button type="button" class="formatBtn" data-format="chords" aria-pressed="false">Chord names</button>
+          <button type="button" class="formatBtn" data-format="roman" aria-pressed="true">Roman numerals</button>
+          <button type="button" class="formatBtn" data-format="nashville" aria-pressed="false">Nashville</button>
+        </div>
+        <div class="practice"><strong>Suggested exercise</strong><p>Read the Roman numerals and play the song in the selected target key. Then switch to chord names to check your answers. Try a different key without changing the song.</p></div>
+        <div class="message" id="caveat">This version assumes a <strong>major-key tonic</strong>. It converts chord roots into scale degrees, but does not yet interpret modulations or secondary dominants such as V7/vi.</div>
+      </section>
+    </div>
+    <section class="panel sheet-panel" aria-labelledby="output-title">
+      <div class="result-head">
+        <div><div class="result-title" id="output-title">3. Your converted sheet</div><div class="result-status" id="status" role="status" aria-live="polite"></div></div>
+        <div class="tools" style="margin:0"><button type="button" class="primary" id="copyBtn">Copy sheet</button><button type="button" id="saveBtn">Save .txt</button><button type="button" id="printBtn">Print</button></div>
+      </div>
+      <div class="sheet-scroll" id="sheetScroll"><div class="sheet" id="sheetOutput" aria-label="Converted chord sheet"></div></div>
+    </section>
+    <p id="toast" role="status" aria-live="polite"></p>
+    <footer>Developed as a learning tool for piano-accordion accompaniment. Original lyrics and chord-sheet copyrights remain with their owners; use only material you have permission to copy.</footer>
+  </main>
+  <script>
+  (() => {
+    'use strict';
+    const example = `[Verse 1]\nC                 Am\nThe evening lights are shining\nF                 G7\nAnd the road is winding home\n\n[Chorus]\nC          G/B       Am\nWe can sing another story\nF          G7      C\nAs we find our way along`;
+    const KEYS = [
+      {name:'C',pc:0,scale:['C','D','E','F','G','A','B']},
+      {name:'D♭',pc:1,scale:['D♭','E♭','F','G♭','A♭','B♭','C']},
+      {name:'D',pc:2,scale:['D','E','F♯','G','A','B','C♯']},
+      {name:'E♭',pc:3,scale:['E♭','F','G','A♭','B♭','C','D']},
+      {name:'E',pc:4,scale:['E','F♯','G♯','A','B','C♯','D♯']},
+      {name:'F',pc:5,scale:['F','G','A','B♭','C','D','E']},
+      {name:'F♯',pc:6,scale:['F♯','G♯','A♯','B','C♯','D♯','E♯']},
+      {name:'G',pc:7,scale:['G','A','B','C','D','E','F♯']},
+      {name:'A♭',pc:8,scale:['A♭','B♭','C','D♭','E♭','F','G']},
+      {name:'A',pc:9,scale:['A','B','C♯','D','E','F♯','G♯']},
+      {name:'B♭',pc:10,scale:['B♭','C','D','E♭','F','G','A']},
+      {name:'B',pc:11,scale:['B','C♯','D♯','E','F♯','G♯','A♯']}
+    ];
+    const NATURAL={C:0,D:2,E:4,F:5,G:7,A:9,B:11};
+    const CHROMATIC_SHARP=['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'];
+    const CHROMATIC_FLAT=['C','D♭','D','E♭','E','F','G♭','G','A♭','A','B♭','B'];
+    const DEGREE=['1','♭2','2','♭3','3','4','♯4','5','♭6','6','♭7','7'];
+    const ROMAN=['I','♭II','II','♭III','III','IV','♯IV','V','♭VI','VI','♭VII','VII'];
+    const els = Object.fromEntries(['sheetInput','sourceKey','targetKey','sheetOutput','status','copyBtn','saveBtn','printBtn','exampleBtn','clearBtn','toast'].map(id=>[id,document.getElementById(id)]));
+    let format='roman';
+    let textOutput='';
+    let toastTimer;
+    const norm = s=>s.replaceAll('#','♯').replaceAll('b','♭');
+    function pitch(s) {
+      const m=s.match(/^([A-G])([#b♯♭]?)$/);
+      if(!m) return null;
+      const a=m[2];
+      return (NATURAL[m[1]]+(a==='#'||a==='♯'?1:a==='b'||a==='♭'?-1:0)+12)%12;
+    }
+    function parseChord(raw) {
+      if(raw==='N.C.' || raw==='NC') return {special:raw};
+      const m=raw.match(/^([A-G](?:#|b|♯|♭)?)([^/]*)?(?:\/([A-G](?:#|b|♯|♭)?))?$/);
+      if(!m || pitch(m[1])===null) return null;
+      const suffix=m[2]||'';
+      if(suffix && !/^(?:(?:m(?!aj)|min|maj|M|dim|aug|sus|add|ø|°|Δ|\+|-)(?:\d+)?|\d+)(?:(?:[#b♯♭]\d+)|(?:sus\d+)|(?:add\d+)|(?:no\d+)|(?:\([^)]{1,20}\)))*$/.test(suffix)) return null;
+      return {root:pitch(m[1]),suffix,bass:m[3]?pitch(m[3]):null,raw};
+    }
+    function romanQuality(suffix) {
+      if (/^(m7b5|ø)/.test(suffix)) return {caseLower:true,suffix:suffix.replace(/^m7b5/,'ø7')};
+      if (/^(dim|°)/.test(suffix)) return {caseLower:true,suffix:suffix.replace(/^dim/,'°')};
+      if (/^(m(?!aj)|min)/.test(suffix)) return {caseLower:true,suffix:suffix.replace(/^(m(?!aj)|min)/,'')};
+      return {caseLower:false,suffix};
+    }
+    function nashvilleQuality(suffix) {
+      return suffix.replace(/^min/,'m').replace(/^dim/,'°').replace(/^aug/,'+');
+    }
+    function chosenKey(id) { return KEYS.find(k=>k.name===els[id].value) || KEYS[0]; }
+    function notationForChord(chord) {
+      if(chord.special) return chord.special;
+      const source=chosenKey('sourceKey'), target=chosenKey('targetKey');
+      const interval=(chord.root-source.pc+12)%12;
+      let text;
+      if(format==='chords') {
+        text=(source.name===target.name?chord.raw.split('/')[0].replaceAll('#','♯').replaceAll('b','♭'):spell((chord.root+target.pc-source.pc+12)%12,target)+chord.suffix);
+      } else if(format==='roman') {
+        const q=romanQuality(chord.suffix);
+        text=(q.caseLower?ROMAN[interval].toLowerCase():ROMAN[interval])+q.suffix;
+      } else {
+        text=DEGREE[interval]+nashvilleQuality(chord.suffix);
+      }
+      if(chord.bass!==null) {
+        if(format==='chords') text+='/'+(source.name===target.name?chord.raw.split('/')[1].replaceAll('#','♯').replaceAll('b','♭'):spell((chord.bass+target.pc-source.pc+12)%12,target));
+        else text+='/'+DEGREE[(chord.bass-source.pc+12)%12];
+      }
+      return text;
+    }
+    function spell(pc,key) {
+      const onScale=key.scale.find(n=>pitch(n)===pc);
+      if(onScale) return onScale;
+      const flatPreferred=['D♭','E♭','F','A♭','B♭'].includes(key.name);
+      return (flatPreferred?CHROMATIC_FLAT:CHROMATIC_SHARP)[pc];
+    }
+    function chordMarkers(line) {
+      const matches=[...line.matchAll(/\S+/g)];
+      if(!matches.length) return null;
+      const chords=[];
+      for(const m of matches) {
+        const token=m[0];
+        if (/^[|:]+$/.test(token)) continue;
+        const chord=parseChord(token);
+        if(!chord) return null;
+        chords.push({start:m.index,chord});
+      }
+      return chords.length?chords:null;
+    }
+    function inlineMarkers(line) {
+      const rx=/\[([^\]]+)\]/g; let m, cursor=0, plain='', markers=[];
+      while((m=rx.exec(line))!==null) {
+        const chord=parseChord(m[1].trim());
+        if(!chord) return null;
+        plain+=line.slice(cursor,m.index);
+        markers.push({start:plain.length,chord});
+        cursor=rx.lastIndex;
+      }
+      if(!markers.length) return null;
+      plain+=line.slice(cursor);
+      return {markers,lyric:plain};
+    }
+    function classifySection(s) {
+      const trimmed=s.trim();
+      if (/^\[(?![A-G](?:#|b|♯|♭)?\])[^\]]+\]$/.test(trimmed)) return true;
+      return /^(?:verse|chorus|intro|outro|bridge|instrumental|pre-chorus|refrain|solo)(?:\s*\d+)?\s*:?$/i.test(trimmed);
+    }
+    function parseLines(input) {
+      let data=input.replace(/\r\n?/g,'\n').replace(/\t/g,'    ').replace(/\[ch\]/gi,'').replace(/\[\/ch\]/gi,'').replace(/\[tab\]/gi,'').replace(/\[\/tab\]/gi,'').split('\n');
+      const parsed=[];
+      for(let i=0;i<data.length;i++) {
+        const line=data[i];
+        if(!line.trim()) { parsed.push({type:'blank'}); continue; }
+        if(classifySection(line)) { parsed.push({type:'section',text:line.trim()}); continue; }
+        const inline=inlineMarkers(line);
+        if(inline) {parsed.push({type:'pair',markers:inline.markers,lyric:inline.lyric});continue;}
+        const chords=chordMarkers(line);
+        if(chords) {
+          let lyric='';
+          const next=data[i+1]||'';
+          if(next.trim() && !classifySection(next) && !chordMarkers(next) && !inlineMarkers(next)) {lyric=next;i++;}
+          parsed.push({type:'pair',markers:chords,lyric});
+          continue;
+        }
+        parsed.push({type:'plain',text:line});
+      }
+      return parsed;
+    }
+    function makePieces(markers,lyric) {
+      const ordered=markers.slice().sort((a,b)=>a.start-b.start);
+      const out=[]; let pos=0;
+      for(let i=0;i<ordered.length;i++) {
+        const m=ordered[i];
+        if(i===0 && m.start>0) {out.push({chord:'',lyric:lyric.slice(0,m.start).padEnd(m.start,' ')});pos=m.start;}
+        const next=ordered[i+1]?.start;
+        const text=lyric.slice(m.start,next===undefined?undefined:next);
+        const origGap=next===undefined?0:next-m.start;
+        out.push({chord:notationForChord(m.chord),lyric:text.padEnd(Math.max(origGap,text.length),' ')});
+        pos=m.start+text.length;
+      }
+      return out;
+    }
+    function create(tag,cls,txt) {const n=document.createElement(tag);if(cls)n.className=cls;if(txt!==undefined)n.textContent=txt;return n;}
+    function renderPair(row,container) {
+      const pieces=makePieces(row.markers,row.lyric);
+      const element=create('div','sheet-block'+(!row.lyric?' chords-only':''));
+      let chordLine='', lyricLine='';
+      for(const piece of pieces) {
+        const width=Math.max(piece.chord.length,piece.lyric.length,1);
+        const col=create('span','sheet-piece');
+        col.style.width=width+'ch';
+        const top=create('span','sheet-chord',piece.chord);
+        const bottom=create('span','sheet-lyric',piece.lyric);
+        col.append(top,bottom); element.append(col);
+        chordLine+=piece.chord.padEnd(width,' '); lyricLine+=piece.lyric.padEnd(width,' ');
+      }
+      container.append(element);
+      return chordLine.trimEnd()+'\n'+(row.lyric?lyricLine.trimEnd()+'\n':'');
+    }
+    function render() {
+      els.sheetOutput.replaceChildren();
+      const content=els.sheetInput.value;
+      if(!content.trim()) {els.status.textContent='Paste a chord sheet above to begin.'; textOutput='';return;}
+      const rows=parseLines(content);
+      let count=0;const result=[];
+      for(const row of rows) {
+        if(row.type==='pair') { count+=row.markers.length;result.push(renderPair(row,els.sheetOutput).replace(/\n$/,'')); }
+        else if(row.type==='section') {els.sheetOutput.append(create('div','sheet-section',row.text));result.push(row.text);}
+        else if(row.type==='blank') {els.sheetOutput.append(create('div','sheet-spacer'));result.push('');}
+        else {els.sheetOutput.append(create('div','sheet-plain',row.text));result.push(row.text);}
+      }
+      textOutput=result.join('\n');
+      els.status.textContent=count+' chord'+(count===1?'':'s')+' recognised · '+(format==='chords'?'Transposed chord names':format==='roman'?'Roman numerals':'Nashville numbers')+' · Original '+chosenKey('sourceKey').name+' → Target '+chosenKey('targetKey').name;
+    }
+    function toast(message) {clearTimeout(toastTimer);els.toast.textContent=message;toastTimer=setTimeout(()=>els.toast.textContent='',3500);}
+    async function copySheet() {
+      try {await navigator.clipboard.writeText(textOutput);toast('Converted sheet copied.');}
+      catch(_) {
+        const area=document.createElement('textarea');area.value=textOutput;area.style.position='absolute';area.style.left='-9999px';document.body.append(area);area.select();
+        try {const ok=document.execCommand('copy');toast(ok?'Converted sheet copied.':'Copy unavailable — try Save .txt.');}
+        catch(e){toast('Copy unavailable — try Save .txt.');} finally {area.remove();}
+      }
+    }
+    function saveSheet() {
+      const b=new Blob([textOutput],{type:'text/plain;charset=utf-8'});
+      const url=URL.createObjectURL(b),a=document.createElement('a');a.href=url;a.download='chord-sheet-'+format+'.txt';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);toast('Text file prepared.');
+    }
+    for(const k of KEYS) for(const id of ['sourceKey','targetKey']) {const o=document.createElement('option');o.value=k.name;o.textContent=k.name+' major';els[id].append(o);}
+    els.sheetInput.value=example;
+    els.sourceKey.value='C';els.targetKey.value='E♭';
+    for(const btn of document.querySelectorAll('.formatBtn')) btn.addEventListener('click',()=>{
+      format=btn.dataset.format;
+      for(const b of document.querySelectorAll('.formatBtn')) b.setAttribute('aria-pressed',String(b===btn));
+      render();
+    });
+    els.sheetInput.addEventListener('input',render);
+    els.sourceKey.addEventListener('change',render);
+    els.targetKey.addEventListener('change',render);
+    els.exampleBtn.addEventListener('click',()=>{els.sheetInput.value=example;els.sourceKey.value='C';els.targetKey.value='E♭';render();toast('Example restored.');});
+    els.clearBtn.addEventListener('click',()=>{els.sheetInput.value='';render();els.sheetInput.focus();});
+    els.copyBtn.addEventListener('click',copySheet);
+    els.saveBtn.addEventListener('click',saveSheet);
+    els.printBtn.addEventListener('click',()=>window.print());
+    render();
+  })();
+  </script>
+</body>
+</html>
